@@ -24,7 +24,7 @@
  *
  * 1 tab == 4 spaces!
  */
-
+/**FreeRTOS的链表 */
 
 #include <stdlib.h>
 #include "FreeRTOS.h"
@@ -33,7 +33,7 @@
 /*-----------------------------------------------------------
  * PUBLIC LIST API documented in list.h
  *----------------------------------------------------------*/
-
+/**初始化链表 */
 void vListInitialise( List_t * const pxList )
 {
 	/* The list structure contains a list item which is used to mark the
@@ -58,7 +58,9 @@ void vListInitialise( List_t * const pxList )
 	listSET_LIST_INTEGRITY_CHECK_2_VALUE( pxList );
 }
 /*-----------------------------------------------------------*/
-
+/**初始化链表的元素
+ * 设置元素所在的链表为空
+ */
 void vListInitialiseItem( ListItem_t * const pxItem )
 {
 	/* Make sure the list item is not recorded as being on a list. */
@@ -70,10 +72,11 @@ void vListInitialiseItem( ListItem_t * const pxItem )
 	listSET_SECOND_LIST_ITEM_INTEGRITY_CHECK_VALUE( pxItem );
 }
 /*-----------------------------------------------------------*/
-
+/**链表尾部插入数据 */
 void vListInsertEnd( List_t * const pxList, ListItem_t * const pxNewListItem )
 {
-ListItem_t * const pxIndex = pxList->pxIndex;
+	/**获取当前处理的节点 */
+	ListItem_t * const pxIndex = pxList->pxIndex;
 
 	/* Only effective when configASSERT() is also defined, these tests may catch
 	the list data structures being overwritten in memory.  They will not catch
@@ -84,6 +87,7 @@ ListItem_t * const pxIndex = pxList->pxIndex;
 	/* Insert a new list item into pxList, but rather than sort the list,
 	makes the new list item the last item to be removed by a call to
 	listGET_OWNER_OF_NEXT_ENTRY(). */
+	/**将插入的节点插入到当前处理节点的前面进行插入操作 */
 	pxNewListItem->pxNext = pxIndex;
 	pxNewListItem->pxPrevious = pxIndex->pxPrevious;
 
@@ -94,16 +98,17 @@ ListItem_t * const pxIndex = pxList->pxIndex;
 	pxIndex->pxPrevious = pxNewListItem;
 
 	/* Remember which list the item is in. */
+	/**设置插入节点所在的链表 */
 	pxNewListItem->pxContainer = pxList;
 
 	( pxList->uxNumberOfItems )++;
 }
 /*-----------------------------------------------------------*/
-
+/**插入数据按照顺序进行插入 */
 void vListInsert( List_t * const pxList, ListItem_t * const pxNewListItem )
 {
-ListItem_t *pxIterator;
-const TickType_t xValueOfInsertion = pxNewListItem->xItemValue;
+	ListItem_t *pxIterator;
+	const TickType_t xValueOfInsertion = pxNewListItem->xItemValue;
 
 	/* Only effective when configASSERT() is also defined, these tests may catch
 	the list data structures being overwritten in memory.  They will not catch
@@ -166,13 +171,14 @@ const TickType_t xValueOfInsertion = pxNewListItem->xItemValue;
 	( pxList->uxNumberOfItems )++;
 }
 /*-----------------------------------------------------------*/
-
+/**删除 */
 UBaseType_t uxListRemove( ListItem_t * const pxItemToRemove )
 {
 /* The list item knows which list it is in.  Obtain the list from the list
 item. */
-List_t * const pxList = pxItemToRemove->pxContainer;
-
+	/**获取链表对象 */
+	List_t * const pxList = pxItemToRemove->pxContainer;
+	/**设置链表之间的连接 */
 	pxItemToRemove->pxNext->pxPrevious = pxItemToRemove->pxPrevious;
 	pxItemToRemove->pxPrevious->pxNext = pxItemToRemove->pxNext;
 
@@ -180,6 +186,7 @@ List_t * const pxList = pxItemToRemove->pxContainer;
 	mtCOVERAGE_TEST_DELAY();
 
 	/* Make sure the index is left pointing to a valid item. */
+	/**如果当前处理的节点是删除的节点，设置此节点为原来节点的上一个节点 */
 	if( pxList->pxIndex == pxItemToRemove )
 	{
 		pxList->pxIndex = pxItemToRemove->pxPrevious;
@@ -188,8 +195,9 @@ List_t * const pxList = pxItemToRemove->pxContainer;
 	{
 		mtCOVERAGE_TEST_MARKER();
 	}
-
+	/**设置此链表节点的所在链表为空 */
 	pxItemToRemove->pxContainer = NULL;
+	/**更新链表的节点数量 */
 	( pxList->uxNumberOfItems )--;
 
 	return pxList->uxNumberOfItems;

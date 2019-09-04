@@ -327,8 +327,8 @@ UBaseType_t uxPriority;
 
 BaseType_t xCoRoutineRemoveFromEventList( const List_t *pxEventList )
 {
-CRCB_t *pxUnblockedCRCB;
-BaseType_t xReturn;
+	CRCB_t *pxUnblockedCRCB;
+	BaseType_t xReturn;
 
 	/* This function is called from within an interrupt.  It can only access
 	event lists and the pending ready list.  This function assumes that a

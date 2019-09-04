@@ -53,6 +53,7 @@ correct privileged Vs unprivileged linkage and placement. */
 to include software timer functionality.  This #if is closed at the very bottom
 of this file.  If you want to include software timer functionality then ensure
 configUSE_TIMERS is set to 1 in FreeRTOSConfig.h. */
+/**判断是否使用了计时器功能*/
 #if ( configUSE_TIMERS == 1 )
 
 /* Misc definitions. */
@@ -60,11 +61,22 @@ configUSE_TIMERS is set to 1 in FreeRTOSConfig.h. */
 
 /* The name assigned to the timer service task.  This can be overridden by
 defining trmTIMER_SERVICE_TASK_NAME in FreeRTOSConfig.h. */
+/**定义计时器服务的名字*/
 #ifndef configTIMER_SERVICE_TASK_NAME
 	#define configTIMER_SERVICE_TASK_NAME "Tmr Svc"
 #endif
 
 /* The definition of the timers themselves. */
+/**定义计时器控制结构体
+ * pcTimerName：计时器的名字
+ * xTimerListItem：
+ * xTimerPeriodInTicks：
+ * uxAutoReload
+ * pvTimerID：
+ * pxCallbackFunction：
+ * uxTimerNumber
+ * ucStaticallyAllocated：
+*/
 typedef struct tmrTimerControl /* The old naming convention is used to prevent breaking kernel aware debuggers. */
 {
 	const char				*pcTimerName;		/*<< Text name.  This is not used by the kernel, it is included simply to make debugging easier. */ /*lint !e971 Unqualified char types are allowed for strings and single characters only. */
@@ -91,13 +103,21 @@ Two types of message can be queued - messages that manipulate a software timer,
 and messages that request the execution of a non-timer related callback.  The
 two message types are defined in two separate structures, xTimerParametersType
 and xCallbackParametersType respectively. */
+/**定义计时器参数
+ * xMessageValue：
+ * pxTimer计时器控制对象：
+*/
 typedef struct tmrTimerParameters
 {
 	TickType_t			xMessageValue;		/*<< An optional value used by a subset of commands, for example, when changing the period of a timer. */
 	Timer_t *			pxTimer;			/*<< The timer to which the command will be applied. */
 } TimerParameter_t;
 
-
+/**计时器回调参数
+ * pxCallbackFunction：回调函数的函数地址
+ * pvParameter1：参数1
+ * pvParameter1：参数2
+*/
 typedef struct tmrCallbackParameters
 {
 	PendedFunction_t	pxCallbackFunction;	/* << The callback function to execute. */
@@ -107,6 +127,10 @@ typedef struct tmrCallbackParameters
 
 /* The structure that contains the two message types, along with an identifier
 that is used to determine which message type is valid. */
+/**计时器队列信息
+ * xMessageID：信息ID
+ * xTimerParameters：计时器参数
+*/
 typedef struct tmrTimerQueueMessage
 {
 	BaseType_t			xMessageID;			/*<< The command being sent to the timer service task. */
@@ -222,7 +246,9 @@ static void prvInitialiseNewTimer(	const char * const pcTimerName,			/*lint !e97
 									TimerCallbackFunction_t pxCallbackFunction,
 									Timer_t *pxNewTimer ) PRIVILEGED_FUNCTION;
 /*-----------------------------------------------------------*/
-
+/**创建计时器任务
+ * 
+*/
 BaseType_t xTimerCreateTimerTask( void )
 {
 BaseType_t xReturn = pdFAIL;

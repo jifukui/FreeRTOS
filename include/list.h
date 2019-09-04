@@ -137,12 +137,12 @@ use of FreeRTOS.*/
  * Definition of the only type of object that a list can contain.
  */
 struct xLIST;
-/**双向链表数据结构
+/**完整版的链表元素
  * xItemValue：
  * pxNext：下一个节点
  * pxPrevious：上一个节点
  * pvOwner：
- * pxContainer
+ * pxContainer：指定所在的链表
  */
 struct xLIST_ITEM
 {
@@ -155,7 +155,11 @@ struct xLIST_ITEM
 	listSECOND_LIST_ITEM_INTEGRITY_CHECK_VALUE			/*< Set to a known value if configUSE_LIST_DATA_INTEGRITY_CHECK_BYTES is set to 1. */
 };
 typedef struct xLIST_ITEM ListItem_t;					/* For some reason lint wants this as two separate definitions. */
-/**单向链表结构 */
+/**减化版的链表项
+ * xItemValue：值
+ * pxNext：下一个
+ * pxPrevious：上一个
+ */
 struct xMINI_LIST_ITEM
 {
 	listFIRST_LIST_ITEM_INTEGRITY_CHECK_VALUE			/*< Set to a known value if configUSE_LIST_DATA_INTEGRITY_CHECK_BYTES is set to 1. */
@@ -167,6 +171,11 @@ typedef struct xMINI_LIST_ITEM MiniListItem_t;
 
 /*
  * Definition of the type of queue used by the scheduler.
+ */
+/**链表
+ * uxNumberOfItems：元素的数量
+ * pxIndex：
+ * xListEnd：
  */
 typedef struct xLIST
 {
@@ -283,7 +292,7 @@ typedef struct xLIST
  */
 #define listGET_OWNER_OF_NEXT_ENTRY( pxTCB, pxList )										\
 {																							\
-List_t * const pxConstList = ( pxList );													\
+	List_t * const pxConstList = ( pxList );													\
 	/* Increment the index to the next item and return the item, ensuring */				\
 	/* we don't return the marker used at the end of the list.  */							\
 	( pxConstList )->pxIndex = ( pxConstList )->pxIndex->pxNext;							\

@@ -43,7 +43,9 @@ extern "C" {
  *-----------------------------------------------------------
  */
 
-/* Type definitions. */
+/** Type definitions. 
+ * 定义数据类型
+*/
 #define portCHAR		char
 #define portFLOAT		float
 #define portDOUBLE		double
@@ -72,6 +74,7 @@ typedef unsigned long UBaseType_t;
 /* Architecture specifics. */
 #define portSTACK_GROWTH			( -1 )
 #define portTICK_PERIOD_MS			( ( TickType_t ) 1000 / configTICK_RATE_HZ )
+/**定义对齐 */
 #define portBYTE_ALIGNMENT			8
 
 /* Constants used with memory barrier intrinsics. */

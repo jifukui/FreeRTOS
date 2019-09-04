@@ -266,6 +266,9 @@ to its original value when it is released. */
  * and stores task state information, including a pointer to the task's context
  * (the task's run time environment, including register values)
  */
+/**任务控制块结构存储任务的状态信息
+ * pxTopOfStack：栈顶的位置
+ */
 typedef struct tskTaskControlBlock 			/* The old naming convention is used to prevent breaking kernel aware debuggers. */
 {
 	volatile StackType_t	*pxTopOfStack;	/*< Points to the location of the last item placed on the tasks stack.  THIS MUST BE THE FIRST MEMBER OF THE TCB STRUCT. */
@@ -273,13 +276,17 @@ typedef struct tskTaskControlBlock 			/* The old naming convention is used to pr
 	#if ( portUSING_MPU_WRAPPERS == 1 )
 		xMPU_SETTINGS	xMPUSettings;		/*< The MPU settings are defined as part of the port layer.  THIS MUST BE THE SECOND MEMBER OF THE TCB STRUCT. */
 	#endif
-
-	ListItem_t			xStateListItem;	/*< The list that the state list item of a task is reference from denotes the state of that task (Ready, Blocked, Suspended ). */
+	/**任务的状态 */
+	ListItem_t			xStateListItem;		/*< The list that the state list item of a task is reference from denotes the state of that task (Ready, Blocked, Suspended ). */
+	
 	ListItem_t			xEventListItem;		/*< Used to reference a task from an event list. */
+	/**任务的优先级 */
 	UBaseType_t			uxPriority;			/*< The priority of the task.  0 is the lowest priority. */
+	/**栈的起始位置 */
 	StackType_t			*pxStack;			/*< Points to the start of the stack. */
+	/**任务名称 */
 	char				pcTaskName[ configMAX_TASK_NAME_LEN ];/*< Descriptive name given to the task when created.  Facilitates debugging only. */ /*lint !e971 Unqualified char types are allowed for strings and single characters only. */
-
+	/**根据栈段增长方向和 计算栈的结束位置 */
 	#if ( ( portSTACK_GROWTH > 0 ) || ( configRECORD_STACK_HIGH_ADDRESS == 1 ) )
 		StackType_t		*pxEndOfStack;		/*< Points to the highest valid address for the stack. */
 	#endif
@@ -348,12 +355,14 @@ typedef tskTCB TCB_t;
 
 /*lint -save -e956 A manual analysis and inspection has been used to determine
 which static variables must be declared volatile. */
+/**当前的任务 */
 PRIVILEGED_DATA TCB_t * volatile pxCurrentTCB = NULL;
 
 /* Lists for ready and blocked tasks. --------------------
 xDelayedTaskList1 and xDelayedTaskList2 could be move to function scople but
 doing so breaks some kernel aware debuggers and debuggers that rely on removing
 the static qualifier. */
+/**准备好的任务列表 */
 PRIVILEGED_DATA static List_t pxReadyTasksLists[ configMAX_PRIORITIES ];/*< Prioritised ready tasks. */
 PRIVILEGED_DATA static List_t xDelayedTaskList1;						/*< Delayed tasks. */
 PRIVILEGED_DATA static List_t xDelayedTaskList2;						/*< Delayed tasks (two lists are used - one for delays that have overflowed the current tick count. */
@@ -743,7 +752,14 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB ) PRIVILEGED_FUNCTION;
 /*-----------------------------------------------------------*/
 
 #if( configSUPPORT_DYNAMIC_ALLOCATION == 1 )
-
+/**动态创建任务
+ * pxTaskCode：函数指针
+ * pcName：任务名称
+ * usStackDepth：栈的大小
+ * pvParameters：参数
+ * uxPriority：优先级
+ * pxCreatedTask：
+ */
 	BaseType_t xTaskCreate(	TaskFunction_t pxTaskCode,
 							const char * const pcName,		/*lint !e971 Unqualified char types are allowed for strings and single characters only. */
 							const configSTACK_DEPTH_TYPE usStackDepth,
@@ -784,18 +800,22 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB ) PRIVILEGED_FUNCTION;
 		StackType_t *pxStack;
 
 			/* Allocate space for the stack used by the task being created. */
+			/**动态申请堆空间 */
 			pxStack = pvPortMalloc( ( ( ( size_t ) usStackDepth ) * sizeof( StackType_t ) ) ); /*lint !e9079 All values returned by pvPortMalloc() have at least the alignment required by the MCU's stack and this allocation is the stack. */
-
+			/**申请空间成功 */
 			if( pxStack != NULL )
 			{
 				/* Allocate space for the TCB. */
+				/**申请控制块的空间 */
 				pxNewTCB = ( TCB_t * ) pvPortMalloc( sizeof( TCB_t ) ); /*lint !e9087 !e9079 All values returned by pvPortMalloc() have at least the alignment required by the MCU's stack, and the first member of TCB_t is always a pointer to the task's stack. */
-
+				/**申请控制块成功 */
 				if( pxNewTCB != NULL )
 				{
 					/* Store the stack location in the TCB. */
+					/**设置控制块的地址为申请的堆的地址 */
 					pxNewTCB->pxStack = pxStack;
 				}
+				/**申请失败 */
 				else
 				{
 					/* The stack cannot be used as the TCB was not created.  Free
@@ -809,7 +829,7 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB ) PRIVILEGED_FUNCTION;
 			}
 		}
 		#endif /* portSTACK_GROWTH */
-
+		/**申请的控制块成功 */
 		if( pxNewTCB != NULL )
 		{
 			#if( tskSTATIC_AND_DYNAMIC_ALLOCATION_POSSIBLE != 0 ) /*lint !e9029 !e731 Macro has been consolidated for readability reasons. */
@@ -819,8 +839,9 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB ) PRIVILEGED_FUNCTION;
 				pxNewTCB->ucStaticallyAllocated = tskDYNAMICALLY_ALLOCATED_STACK_AND_TCB;
 			}
 			#endif /* configSUPPORT_STATIC_ALLOCATION */
-
+			/**初始化 */
 			prvInitialiseNewTask( pxTaskCode, pcName, ( uint32_t ) usStackDepth, pvParameters, uxPriority, pxCreatedTask, pxNewTCB, NULL );
+			/**添加到任务处理中 */
 			prvAddNewTaskToReadyList( pxNewTCB );
 			xReturn = pdPASS;
 		}
@@ -834,7 +855,16 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB ) PRIVILEGED_FUNCTION;
 
 #endif /* configSUPPORT_DYNAMIC_ALLOCATION */
 /*-----------------------------------------------------------*/
-
+/**初始化新的任务
+ * pxTaskCode
+ * pcName
+ * ulStackDepth
+ * pvParameters
+ * uxPriority
+ * pxCreatedTask
+ * pxNewTCB
+ * xRegions
+ */
 static void prvInitialiseNewTask( 	TaskFunction_t pxTaskCode,
 									const char * const pcName,		/*lint !e971 Unqualified char types are allowed for strings and single characters only. */
 									const uint32_t ulStackDepth,
@@ -860,7 +890,7 @@ UBaseType_t x;
 		}
 		uxPriority &= ~portPRIVILEGE_BIT;
 	#endif /* portUSING_MPU_WRAPPERS == 1 */
-
+	/**没有 */
 	configASSERT( pcName );
 
 	/* Avoid dependency on memset() if it is not required. */
@@ -900,11 +930,13 @@ UBaseType_t x;
 
 		/* The other extreme of the stack space is required if stack checking is
 		performed. */
+		/**设置堆的终止位置 */
 		pxNewTCB->pxEndOfStack = pxNewTCB->pxStack + ( ulStackDepth - ( uint32_t ) 1 );
 	}
 	#endif /* portSTACK_GROWTH */
 
 	/* Store the task name in the TCB. */
+	/**设置任务的名称 */
 	for( x = ( UBaseType_t ) 0; x < ( UBaseType_t ) configMAX_TASK_NAME_LEN; x++ )
 	{
 		pxNewTCB->pcTaskName[ x ] = pcName[ x ];
@@ -928,6 +960,7 @@ UBaseType_t x;
 
 	/* This is used as an array index so must ensure it's not too large.  First
 	remove the privilege bit if one is present. */
+	/**设置优先级 */
 	if( uxPriority >= ( UBaseType_t ) configMAX_PRIORITIES )
 	{
 		uxPriority = ( UBaseType_t ) configMAX_PRIORITIES - ( UBaseType_t ) 1U;
@@ -944,16 +977,20 @@ UBaseType_t x;
 		pxNewTCB->uxMutexesHeld = 0;
 	}
 	#endif /* configUSE_MUTEXES */
-
+	/**初始化任务的状态节点 */
 	vListInitialiseItem( &( pxNewTCB->xStateListItem ) );
+	/**初始化任务的事件节点 */
 	vListInitialiseItem( &( pxNewTCB->xEventListItem ) );
 
 	/* Set the pxNewTCB as a link back from the ListItem_t.  This is so we can get
 	back to	the containing TCB from a generic item in a list. */
+	/**获取此任务的拥有者 */
 	listSET_LIST_ITEM_OWNER( &( pxNewTCB->xStateListItem ), pxNewTCB );
 
 	/* Event lists are always in priority order. */
+	/** */
 	listSET_LIST_ITEM_VALUE( &( pxNewTCB->xEventListItem ), ( TickType_t ) configMAX_PRIORITIES - ( TickType_t ) uxPriority ); /*lint !e961 MISRA exception as the casts are only redundant for some ports. */
+	/** */
 	listSET_LIST_ITEM_OWNER( &( pxNewTCB->xEventListItem ), pxNewTCB );
 
 	#if ( portCRITICAL_NESTING_IN_TCB == 1 )
@@ -1040,7 +1077,7 @@ UBaseType_t x;
 	}
 }
 /*-----------------------------------------------------------*/
-
+/**将任务添加至就绪列表 */
 static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 {
 	/* Ensure interrupts don't access the task lists while the lists are being
@@ -1935,7 +1972,7 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 
 #endif /* ( ( INCLUDE_xTaskResumeFromISR == 1 ) && ( INCLUDE_vTaskSuspend == 1 ) ) */
 /*-----------------------------------------------------------*/
-
+/**启动任务调度 */
 void vTaskStartScheduler( void )
 {
 BaseType_t xReturn;
@@ -4983,7 +5020,7 @@ TickType_t uxReturn;
 #endif /* configUSE_TASK_NOTIFICATIONS */
 /*-----------------------------------------------------------*/
 
-
+/** */
 static void prvAddCurrentTaskToDelayedList( TickType_t xTicksToWait, const BaseType_t xCanBlockIndefinitely )
 {
 TickType_t xTimeToWake;

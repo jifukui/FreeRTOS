@@ -217,7 +217,7 @@ extern "C" {
 #ifndef portCRITICAL_NESTING_IN_TCB
 	#define portCRITICAL_NESTING_IN_TCB 0
 #endif
-
+/**定义任务名称的最大长度 */
 #ifndef configMAX_TASK_NAME_LEN
 	#define configMAX_TASK_NAME_LEN 16
 #endif
@@ -996,6 +996,7 @@ typedef struct xSTATIC_LIST
  * are set.  Its contents are somewhat obfuscated in the hope users will
  * recognise that it would be unwise to make direct use of the structure members.
  */
+/**系统的任务调度控制块 */
 typedef struct xSTATIC_TCB
 {
 	void				*pxDummy1;
