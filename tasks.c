@@ -137,6 +137,7 @@ configIDLE_TASK_NAME in FreeRTOSConfig.h. */
 
 	/* uxTopReadyPriority holds the priority of the highest priority ready
 	state task. */
+	/**获取优先级比*/
 	#define taskRECORD_READY_PRIORITY( uxPriority )														\
 	{																									\
 		if( ( uxPriority ) > uxTopReadyPriority )														\
@@ -146,7 +147,7 @@ configIDLE_TASK_NAME in FreeRTOSConfig.h. */
 	} /* taskRECORD_READY_PRIORITY */
 
 	/*-----------------------------------------------------------*/
-
+	/***/
 	#define taskSELECT_HIGHEST_PRIORITY_TASK()															\
 	{																									\
 	UBaseType_t uxTopPriority = uxTopReadyPriority;														\
@@ -212,6 +213,7 @@ configIDLE_TASK_NAME in FreeRTOSConfig.h. */
 
 /* pxDelayedTaskList and pxOverflowDelayedTaskList are switched when the tick
 count overflows. */
+/***/
 #define taskSWITCH_DELAYED_LISTS()																	\
 {																									\
 	List_t *pxTemp;																					\
@@ -232,7 +234,9 @@ count overflows. */
  * Place the task represented by pxTCB into the appropriate ready list for
  * the task.  It is inserted at the end of the list.
  */
-#define prvAddTaskToReadyList( pxTCB )																\
+/**添加任务到准备链表中*/
+#define prvAddTaskToReadyList( pxTCB )
+	/**这个宏貌似没有什么用*/																\
 	traceMOVED_TASK_TO_READY_STATE( pxTCB );														\
 	taskRECORD_READY_PRIORITY( ( pxTCB )->uxPriority );												\
 	vListInsertEnd( &( pxReadyTasksLists[ ( pxTCB )->uxPriority ] ), &( ( pxTCB )->xStateListItem ) ); \
@@ -245,6 +249,7 @@ count overflows. */
  * task should be used in place of the parameter.  This macro simply checks to
  * see if the parameter is NULL and returns a pointer to the appropriate TCB.
  */
+/**值为空指向当前任务，不为空指向传入的任务句柄*/
 #define prvGetTCBFromHandle( pxHandle ) ( ( ( pxHandle ) == NULL ) ? pxCurrentTCB : ( pxHandle ) )
 
 /* The item value of the event list item is normally used to hold the priority
@@ -255,6 +260,7 @@ being used for another purpose.  The following bit definition is used to inform
 the scheduler that the value should not be changed - in which case it is the
 responsibility of whichever module is using the value to ensure it gets set back
 to its original value when it is released. */
+/**根据设置是否使用16位的时钟设置*/
 #if( configUSE_16_BIT_TICKS == 1 )
 	#define taskEVENT_LIST_ITEM_VALUE_IN_USE	0x8000U
 #else
@@ -266,8 +272,14 @@ to its original value when it is released. */
  * and stores task state information, including a pointer to the task's context
  * (the task's run time environment, including register values)
  */
-/**任务控制块结构存储任务的状态信息
+/**任务控制块结构存储任务的状态信息（任务结构体）
  * pxTopOfStack：栈顶的位置
+ * xStateListItem：任务的状态为0表示处于运行态
+ * xEventListItem
+ * uxPriority：
+ * pxStack
+ * pcTaskName
+ * 
  */
 typedef struct tskTaskControlBlock 			/* The old naming convention is used to prevent breaking kernel aware debuggers. */
 {
@@ -364,21 +376,27 @@ doing so breaks some kernel aware debuggers and debuggers that rely on removing
 the static qualifier. */
 /**准备好的任务列表 */
 PRIVILEGED_DATA static List_t pxReadyTasksLists[ configMAX_PRIORITIES ];/*< Prioritised ready tasks. */
+/**阻塞态的任务链表1*/
 PRIVILEGED_DATA static List_t xDelayedTaskList1;						/*< Delayed tasks. */
+/**阻塞态的任务链表2*/
 PRIVILEGED_DATA static List_t xDelayedTaskList2;						/*< Delayed tasks (two lists are used - one for delays that have overflowed the current tick count. */
+/***/
 PRIVILEGED_DATA static List_t * volatile pxDelayedTaskList;				/*< Points to the delayed task list currently being used. */
+/***/
 PRIVILEGED_DATA static List_t * volatile pxOverflowDelayedTaskList;		/*< Points to the delayed task list currently being used to hold tasks that have overflowed the current tick count. */
+/***/
 PRIVILEGED_DATA static List_t xPendingReadyList;						/*< Tasks that have been readied while the scheduler was suspended.  They will be moved to the ready list when the scheduler is resumed. */
 
 #if( INCLUDE_vTaskDelete == 1 )
-
+	/**任务已经删除但是没有释放内存的任务链表*/
 	PRIVILEGED_DATA static List_t xTasksWaitingTermination;				/*< Tasks that have been deleted - but their memory not yet freed. */
+	/**任务已经删除等待清除的任务的数量*/
 	PRIVILEGED_DATA static volatile UBaseType_t uxDeletedTasksWaitingCleanUp = ( UBaseType_t ) 0U;
 
 #endif
 
 #if ( INCLUDE_vTaskSuspend == 1 )
-
+	/**被挂载的任务的链表*/
 	PRIVILEGED_DATA static List_t xSuspendedTaskList;					/*< Tasks that are currently suspended. */
 
 #endif
@@ -390,15 +408,25 @@ the errno of the currently running task. */
 #endif
 
 /* Other file private variables. --------------------------------*/
+/**任务的数量*/
 PRIVILEGED_DATA static volatile UBaseType_t uxCurrentNumberOfTasks 	= ( UBaseType_t ) 0U;
+/**计时器*/
 PRIVILEGED_DATA static volatile TickType_t xTickCount 				= ( TickType_t ) configINITIAL_TICK_COUNT;
+
 PRIVILEGED_DATA static volatile UBaseType_t uxTopReadyPriority 		= tskIDLE_PRIORITY;
+
 PRIVILEGED_DATA static volatile BaseType_t xSchedulerRunning 		= pdFALSE;
+
 PRIVILEGED_DATA static volatile UBaseType_t uxPendedTicks 			= ( UBaseType_t ) 0U;
+
 PRIVILEGED_DATA static volatile BaseType_t xYieldPending 			= pdFALSE;
+
 PRIVILEGED_DATA static volatile BaseType_t xNumOfOverflows 			= ( BaseType_t ) 0;
+
 PRIVILEGED_DATA static UBaseType_t uxTaskNumber 					= ( UBaseType_t ) 0U;
+
 PRIVILEGED_DATA static volatile TickType_t xNextTaskUnblockTime		= ( TickType_t ) 0U; /* Initialised to portMAX_DELAY before the scheduler starts. */
+
 PRIVILEGED_DATA static TaskHandle_t xIdleTaskHandle					= NULL;			/*< Holds the handle of the idle task.  The idle task is created automatically when the scheduler is started. */
 
 /* Context switches are held pending while the scheduler is suspended.  Also,
@@ -409,6 +437,7 @@ moves the task's event list item into the xPendingReadyList, ready for the
 kernel to move the task from the pending ready list into the real ready list
 when the scheduler is unsuspended.  The pending ready list itself can only be
 accessed from a critical section. */
+/***/
 PRIVILEGED_DATA static volatile UBaseType_t uxSchedulerSuspended	= ( UBaseType_t ) pdFALSE;
 
 #if ( configGENERATE_RUN_TIME_STATS == 1 )
@@ -571,6 +600,7 @@ static void prvResetNextTaskUnblockTime( void );
  * Called after a Task_t structure has been allocated either statically or
  * dynamically to fill in the structure's members.
  */
+/**初始化任务结构体成员*/
 static void prvInitialiseNewTask( 	TaskFunction_t pxTaskCode,
 									const char * const pcName, 		/*lint !e971 Unqualified char types are allowed for strings and single characters only. */
 									const uint32_t ulStackDepth,
@@ -584,6 +614,7 @@ static void prvInitialiseNewTask( 	TaskFunction_t pxTaskCode,
  * Called after a new task has been created and initialised to place the task
  * under the control of the scheduler.
  */
+/**添加新任务到就绪态任务列表*/
 static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB ) PRIVILEGED_FUNCTION;
 
 /*
@@ -598,9 +629,9 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB ) PRIVILEGED_FUNCTION;
 #endif
 
 /*-----------------------------------------------------------*/
-
+/**创建任务*/
 #if( configSUPPORT_STATIC_ALLOCATION == 1 )
-
+	/**静态创建任务*/
 	TaskHandle_t xTaskCreateStatic(	TaskFunction_t pxTaskCode,
 									const char * const pcName,		/*lint !e971 Unqualified char types are allowed for strings and single characters only. */
 									const uint32_t ulStackDepth,
@@ -614,7 +645,7 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB ) PRIVILEGED_FUNCTION;
 
 		configASSERT( puxStackBuffer != NULL );
 		configASSERT( pxTaskBuffer != NULL );
-
+		/**如果定义断言宏*/
 		#if( configASSERT_DEFINED == 1 )
 		{
 			/* Sanity check that the size of the structure used to declare a
@@ -626,7 +657,7 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB ) PRIVILEGED_FUNCTION;
 		}
 		#endif /* configASSERT_DEFINED */
 
-
+		/**检测栈相关的参数是否正确*/
 		if( ( pxTaskBuffer != NULL ) && ( puxStackBuffer != NULL ) )
 		{
 			/* The memory used for the task's TCB and stack are passed into this
@@ -641,8 +672,9 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB ) PRIVILEGED_FUNCTION;
 				pxNewTCB->ucStaticallyAllocated = tskSTATICALLY_ALLOCATED_STACK_AND_TCB;
 			}
 			#endif /* configSUPPORT_DYNAMIC_ALLOCATION */
-
+			/**设置任务相关参数*/
 			prvInitialiseNewTask( pxTaskCode, pcName, ulStackDepth, pvParameters, uxPriority, &xReturn, pxNewTCB, NULL );
+			/**添加任务到就绪链表中*/
 			prvAddNewTaskToReadyList( pxNewTCB );
 		}
 		else
@@ -655,13 +687,13 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB ) PRIVILEGED_FUNCTION;
 
 #endif /* SUPPORT_STATIC_ALLOCATION */
 /*-----------------------------------------------------------*/
-
+/**创建静态内存保护的任务*/
 #if( ( portUSING_MPU_WRAPPERS == 1 ) && ( configSUPPORT_STATIC_ALLOCATION == 1 ) )
 
 	BaseType_t xTaskCreateRestrictedStatic( const TaskParameters_t * const pxTaskDefinition, TaskHandle_t *pxCreatedTask )
 	{
-	TCB_t *pxNewTCB;
-	BaseType_t xReturn = errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY;
+		TCB_t *pxNewTCB;
+		BaseType_t xReturn = errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY;
 
 		configASSERT( pxTaskDefinition->puxStackBuffer != NULL );
 		configASSERT( pxTaskDefinition->pxTaskBuffer != NULL );
@@ -683,7 +715,7 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB ) PRIVILEGED_FUNCTION;
 				pxNewTCB->ucStaticallyAllocated = tskSTATICALLY_ALLOCATED_STACK_AND_TCB;
 			}
 			#endif /* configSUPPORT_DYNAMIC_ALLOCATION */
-
+			/**设置任务相关参数*/
 			prvInitialiseNewTask(	pxTaskDefinition->pvTaskCode,
 									pxTaskDefinition->pcName,
 									( uint32_t ) pxTaskDefinition->usStackDepth,
@@ -691,7 +723,7 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB ) PRIVILEGED_FUNCTION;
 									pxTaskDefinition->uxPriority,
 									pxCreatedTask, pxNewTCB,
 									pxTaskDefinition->xRegions );
-
+			/**设置任务到就绪链表中*/
 			prvAddNewTaskToReadyList( pxNewTCB );
 			xReturn = pdPASS;
 		}
@@ -703,11 +735,11 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB ) PRIVILEGED_FUNCTION;
 /*-----------------------------------------------------------*/
 
 #if( ( portUSING_MPU_WRAPPERS == 1 ) && ( configSUPPORT_DYNAMIC_ALLOCATION == 1 ) )
-
+	/**创建动态的具有内存保护单元的任务*/
 	BaseType_t xTaskCreateRestricted( const TaskParameters_t * const pxTaskDefinition, TaskHandle_t *pxCreatedTask )
 	{
-	TCB_t *pxNewTCB;
-	BaseType_t xReturn = errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY;
+		TCB_t *pxNewTCB;
+		BaseType_t xReturn = errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY;
 
 		configASSERT( pxTaskDefinition->puxStackBuffer );
 
@@ -753,7 +785,7 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB ) PRIVILEGED_FUNCTION;
 
 #if( configSUPPORT_DYNAMIC_ALLOCATION == 1 )
 /**动态创建任务
- * pxTaskCode：函数指针
+ * pxTaskCode：任务函数指针
  * pcName：任务名称
  * usStackDepth：栈的大小
  * pvParameters：参数
@@ -778,6 +810,7 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB ) PRIVILEGED_FUNCTION;
 			/* Allocate space for the TCB.  Where the memory comes from depends on
 			the implementation of the port malloc function and whether or not static
 			allocation is being used. */
+			/**申请任务结构体空间*/
 			pxNewTCB = ( TCB_t * ) pvPortMalloc( sizeof( TCB_t ) );
 
 			if( pxNewTCB != NULL )
@@ -785,6 +818,7 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB ) PRIVILEGED_FUNCTION;
 				/* Allocate space for the stack used by the task being created.
 				The base of the stack memory stored in the TCB so the task can
 				be deleted later if required. */
+				/**省钱任务需要的栈的空间*/
 				pxNewTCB->pxStack = ( StackType_t * ) pvPortMalloc( ( ( ( size_t ) usStackDepth ) * sizeof( StackType_t ) ) ); /*lint !e961 MISRA exception as the casts are only redundant for some ports. */
 
 				if( pxNewTCB->pxStack == NULL )
@@ -855,15 +889,16 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB ) PRIVILEGED_FUNCTION;
 
 #endif /* configSUPPORT_DYNAMIC_ALLOCATION */
 /*-----------------------------------------------------------*/
-/**初始化新的任务
- * pxTaskCode
- * pcName
- * ulStackDepth
- * pvParameters
- * uxPriority
- * pxCreatedTask
- * pxNewTCB
- * xRegions
+/**初始化新的任务结构体内容
+ * 设置任务的栈的开始和结束位置
+ * pxTaskCode：任务函数地址
+ * pcName：任务名称
+ * ulStackDepth：栈深度
+ * pvParameters：参数
+ * uxPriority：优先级
+ * pxCreatedTask：任务句柄
+ * pxNewTCB：任务控制块
+ * xRegions：
  */
 static void prvInitialiseNewTask( 	TaskFunction_t pxTaskCode,
 									const char * const pcName,		/*lint !e971 Unqualified char types are allowed for strings and single characters only. */
@@ -874,8 +909,8 @@ static void prvInitialiseNewTask( 	TaskFunction_t pxTaskCode,
 									TCB_t *pxNewTCB,
 									const MemoryRegion_t * const xRegions )
 {
-StackType_t *pxTopOfStack;
-UBaseType_t x;
+	StackType_t *pxTopOfStack;
+	UBaseType_t x;
 
 	#if( portUSING_MPU_WRAPPERS == 1 )
 		/* Should the task be created in privileged mode? */
@@ -890,7 +925,7 @@ UBaseType_t x;
 		}
 		uxPriority &= ~portPRIVILEGE_BIT;
 	#endif /* portUSING_MPU_WRAPPERS == 1 */
-	/**没有 */
+	/**断言检测任务名称 */
 	configASSERT( pcName );
 
 	/* Avoid dependency on memset() if it is not required. */
@@ -905,6 +940,7 @@ UBaseType_t x;
 	grows from high memory to low (as per the 80x86) or vice versa.
 	portSTACK_GROWTH is used to make the result positive or negative as required
 	by the port. */
+	/**根据栈的生长方向进行判断*/
 	#if( portSTACK_GROWTH < 0 )
 	{
 		pxTopOfStack = &( pxNewTCB->pxStack[ ulStackDepth - ( uint32_t ) 1 ] );
@@ -923,6 +959,7 @@ UBaseType_t x;
 	}
 	#else /* portSTACK_GROWTH */
 	{
+		/**指向任务栈的开始*/
 		pxTopOfStack = pxNewTCB->pxStack;
 
 		/* Check the alignment of the stack buffer is correct. */
@@ -971,6 +1008,7 @@ UBaseType_t x;
 	}
 
 	pxNewTCB->uxPriority = uxPriority;
+	/**如果使用互斥量设置*/
 	#if ( configUSE_MUTEXES == 1 )
 	{
 		pxNewTCB->uxBasePriority = uxPriority;
@@ -988,9 +1026,9 @@ UBaseType_t x;
 	listSET_LIST_ITEM_OWNER( &( pxNewTCB->xStateListItem ), pxNewTCB );
 
 	/* Event lists are always in priority order. */
-	/** */
+	/**设置事件的链表的值，值为最大优先级减去设置的优先级 */
 	listSET_LIST_ITEM_VALUE( &( pxNewTCB->xEventListItem ), ( TickType_t ) configMAX_PRIORITIES - ( TickType_t ) uxPriority ); /*lint !e961 MISRA exception as the casts are only redundant for some ports. */
-	/** */
+	/**设置事件链表对象的任务拥有者 */
 	listSET_LIST_ITEM_OWNER( &( pxNewTCB->xEventListItem ), pxNewTCB );
 
 	#if ( portCRITICAL_NESTING_IN_TCB == 1 )
@@ -1077,13 +1115,20 @@ UBaseType_t x;
 	}
 }
 /*-----------------------------------------------------------*/
-/**将任务添加至就绪列表 */
+/**将任务添加至就绪列表 
+ * 设置进入临界区
+*/
 static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 {
 	/* Ensure interrupts don't access the task lists while the lists are being
 	updated. */
+	/**设置进入临界区不对中断和任务切换做处理*/
 	taskENTER_CRITICAL();
 	{
+		/**设置任务的数量加一
+		 * 根据当前的任务对象全局变量是否为空
+		 * 如果是第一个任务初始化任务链表否则什么也不做
+		*/
 		uxCurrentNumberOfTasks++;
 		if( pxCurrentTCB == NULL )
 		{
@@ -1103,6 +1148,9 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 				mtCOVERAGE_TEST_MARKER();
 			}
 		}
+		/**当前任务不为空
+		 * 如果不处于任务调度状态，如果当前任务的优先级小于心热无的优先级设置当前任务为新的任务
+		*/
 		else
 		{
 			/* If the scheduler is not already running, make this task the
@@ -1124,7 +1172,7 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 				mtCOVERAGE_TEST_MARKER();
 			}
 		}
-
+		/**任务的数量加一*/
 		uxTaskNumber++;
 
 		#if ( configUSE_TRACE_FACILITY == 1 )
@@ -1134,13 +1182,16 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 		}
 		#endif /* configUSE_TRACE_FACILITY */
 		traceTASK_CREATE( pxNewTCB );
-
+		/**添加新的任务到就绪态任务链表中*/
 		prvAddTaskToReadyList( pxNewTCB );
 
 		portSETUP_TCB( pxNewTCB );
 	}
+	/**退出临界区*/
 	taskEXIT_CRITICAL();
-
+	/**如果处于任务调度状态处理
+	 * 如果新任务的优先级大于当前任务的优先级
+	*/
 	if( xSchedulerRunning != pdFALSE )
 	{
 		/* If the created task is of a higher priority than the current task
@@ -1162,18 +1213,22 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 /*-----------------------------------------------------------*/
 
 #if ( INCLUDE_vTaskDelete == 1 )
-
+	/**删除任务
+	 * 
+	*/
 	void vTaskDelete( TaskHandle_t xTaskToDelete )
 	{
-	TCB_t *pxTCB;
+		TCB_t *pxTCB;
 
 		taskENTER_CRITICAL();
 		{
 			/* If null is passed in here then it is the calling task that is
 			being deleted. */
+			/**获取任务的句柄*/
 			pxTCB = prvGetTCBFromHandle( xTaskToDelete );
 
 			/* Remove task from the ready list. */
+			/**对于任务处于就绪态的处理*/
 			if( uxListRemove( &( pxTCB->xStateListItem ) ) == ( UBaseType_t ) 0 )
 			{
 				taskRESET_READY_PRIORITY( pxTCB->uxPriority );
@@ -1184,6 +1239,7 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 			}
 
 			/* Is the task waiting on an event also? */
+			/**对于任务等待时间发送的处理*/
 			if( listLIST_ITEM_CONTAINER( &( pxTCB->xEventListItem ) ) != NULL )
 			{
 				( void ) uxListRemove( &( pxTCB->xEventListItem ) );
@@ -1198,7 +1254,7 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 			portPRE_TASK_DELETE_HOOK() as in the Windows port that macro will
 			not return. */
 			uxTaskNumber++;
-
+			/**对于删除的任务为当前运行任务的处理*/
 			if( pxTCB == pxCurrentTCB )
 			{
 				/* A task is deleting itself.  This cannot complete within the
@@ -1220,6 +1276,7 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 				required. */
 				portPRE_TASK_DELETE_HOOK( pxTCB, &xYieldPending );
 			}
+			/**对于删除任务为不是当前运行任务的处理*/
 			else
 			{
 				--uxCurrentNumberOfTasks;
@@ -1254,11 +1311,11 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 /*-----------------------------------------------------------*/
 
 #if ( INCLUDE_vTaskDelayUntil == 1 )
-
+	/**定时删除任务*/	
 	void vTaskDelayUntil( TickType_t * const pxPreviousWakeTime, const TickType_t xTimeIncrement )
 	{
-	TickType_t xTimeToWake;
-	BaseType_t xAlreadyYielded, xShouldDelay = pdFALSE;
+		TickType_t xTimeToWake;
+		BaseType_t xAlreadyYielded, xShouldDelay = pdFALSE;
 
 		configASSERT( pxPreviousWakeTime );
 		configASSERT( ( xTimeIncrement > 0U ) );
@@ -1338,12 +1395,13 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 /*-----------------------------------------------------------*/
 
 #if ( INCLUDE_vTaskDelay == 1 )
-
+	/**设置任务进入阻塞状态*/
 	void vTaskDelay( const TickType_t xTicksToDelay )
 	{
-	BaseType_t xAlreadyYielded = pdFALSE;
+		BaseType_t xAlreadyYielded = pdFALSE;
 
 		/* A delay time of zero just forces a reschedule. */
+		/**对于设置的阻塞的时间大于0的处理*/
 		if( xTicksToDelay > ( TickType_t ) 0U )
 		{
 			configASSERT( uxSchedulerSuspended == 0 );
@@ -1383,15 +1441,15 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 /*-----------------------------------------------------------*/
 
 #if( ( INCLUDE_eTaskGetState == 1 ) || ( configUSE_TRACE_FACILITY == 1 ) )
-
+	/**获取任务的状态*/
 	eTaskState eTaskGetState( TaskHandle_t xTask )
 	{
-	eTaskState eReturn;
-	List_t const * pxStateList, *pxDelayedList, *pxOverflowedDelayedList;
-	const TCB_t * const pxTCB = xTask;
+		eTaskState eReturn;
+		List_t const * pxStateList, *pxDelayedList, *pxOverflowedDelayedList;
+		const TCB_t * const pxTCB = xTask;
 
 		configASSERT( pxTCB );
-
+		/**对于任务为当前任务返回运行态*/
 		if( pxTCB == pxCurrentTCB )
 		{
 			/* The task calling this function is querying its own state. */
@@ -1475,11 +1533,11 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 /*-----------------------------------------------------------*/
 
 #if ( INCLUDE_uxTaskPriorityGet == 1 )
-
+	/**获取任务的优先级*/
 	UBaseType_t uxTaskPriorityGet( const TaskHandle_t xTask )
 	{
-	TCB_t const *pxTCB;
-	UBaseType_t uxReturn;
+		TCB_t const *pxTCB;
+		UBaseType_t uxReturn;
 
 		taskENTER_CRITICAL();
 		{
@@ -1497,11 +1555,11 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 /*-----------------------------------------------------------*/
 
 #if ( INCLUDE_uxTaskPriorityGet == 1 )
-
+	/**获取ISR任务的优先级*/
 	UBaseType_t uxTaskPriorityGetFromISR( const TaskHandle_t xTask )
 	{
-	TCB_t const *pxTCB;
-	UBaseType_t uxReturn, uxSavedInterruptState;
+		TCB_t const *pxTCB;
+		UBaseType_t uxReturn, uxSavedInterruptState;
 
 		/* RTOS ports that support interrupt nesting have the concept of a
 		maximum	system call (or maximum API call) interrupt priority.
@@ -1537,12 +1595,12 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 /*-----------------------------------------------------------*/
 
 #if ( INCLUDE_vTaskPrioritySet == 1 )
-
+	/**设置任务的优先级*/
 	void vTaskPrioritySet( TaskHandle_t xTask, UBaseType_t uxNewPriority )
 	{
-	TCB_t *pxTCB;
-	UBaseType_t uxCurrentBasePriority, uxPriorityUsedOnEntry;
-	BaseType_t xYieldRequired = pdFALSE;
+		TCB_t *pxTCB;
+		UBaseType_t uxCurrentBasePriority, uxPriorityUsedOnEntry;
+		BaseType_t xYieldRequired = pdFALSE;
 
 		configASSERT( ( uxNewPriority < configMAX_PRIORITIES ) );
 
@@ -1701,10 +1759,10 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 /*-----------------------------------------------------------*/
 
 #if ( INCLUDE_vTaskSuspend == 1 )
-
+	/**设置任务进入挂载状态*/
 	void vTaskSuspend( TaskHandle_t xTaskToSuspend )
 	{
-	TCB_t *pxTCB;
+		TCB_t *pxTCB;
 
 		taskENTER_CRITICAL();
 		{
@@ -1805,8 +1863,8 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 
 	static BaseType_t prvTaskIsTaskSuspended( const TaskHandle_t xTask )
 	{
-	BaseType_t xReturn = pdFALSE;
-	const TCB_t * const pxTCB = xTask;
+		BaseType_t xReturn = pdFALSE;
+		const TCB_t * const pxTCB = xTask;
 
 		/* Accesses xPendingReadyList so must be called from a critical
 		section. */
@@ -1848,10 +1906,10 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 /*-----------------------------------------------------------*/
 
 #if ( INCLUDE_vTaskSuspend == 1 )
-
+	/**获取任务的概要信息*/
 	void vTaskResume( TaskHandle_t xTaskToResume )
 	{
-	TCB_t * const pxTCB = xTaskToResume;
+		TCB_t * const pxTCB = xTaskToResume;
 
 		/* It does not make sense to resume the calling task. */
 		configASSERT( xTaskToResume );
@@ -1905,9 +1963,9 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 
 	BaseType_t xTaskResumeFromISR( TaskHandle_t xTaskToResume )
 	{
-	BaseType_t xYieldRequired = pdFALSE;
-	TCB_t * const pxTCB = xTaskToResume;
-	UBaseType_t uxSavedInterruptStatus;
+		BaseType_t xYieldRequired = pdFALSE;
+		TCB_t * const pxTCB = xTaskToResume;
+		UBaseType_t uxSavedInterruptStatus;
 
 		configASSERT( xTaskToResume );
 
@@ -1975,9 +2033,10 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 /**启动任务调度 */
 void vTaskStartScheduler( void )
 {
-BaseType_t xReturn;
+	BaseType_t xReturn;
 
 	/* Add the idle task at the lowest priority. */
+	/**静态的创建最低优先级*/
 	#if( configSUPPORT_STATIC_ALLOCATION == 1 )
 	{
 		StaticTask_t *pxIdleTaskTCBBuffer = NULL;
@@ -1987,6 +2046,7 @@ BaseType_t xReturn;
 		/* The Idle task is created using user provided RAM - obtain the
 		address of the RAM then create the idle task. */
 		vApplicationGetIdleTaskMemory( &pxIdleTaskTCBBuffer, &pxIdleTaskStackBuffer, &ulIdleTaskStackSize );
+		/**创建静态任务*/
 		xIdleTaskHandle = xTaskCreateStatic(	prvIdleTask,
 												configIDLE_TASK_NAME,
 												ulIdleTaskStackSize,
@@ -2015,7 +2075,7 @@ BaseType_t xReturn;
 								&xIdleTaskHandle ); /*lint !e961 MISRA exception, justified as it is not a redundant explicit cast to all supported compilers. */
 	}
 	#endif /* configSUPPORT_STATIC_ALLOCATION */
-
+	/**根据是否配置计时器进行处理*/
 	#if ( configUSE_TIMERS == 1 )
 	{
 		if( xReturn == pdPASS )
@@ -2028,7 +2088,7 @@ BaseType_t xReturn;
 		}
 	}
 	#endif /* configUSE_TIMERS */
-
+	/**根据创建处理进程和其他任务进行处理*/
 	if( xReturn == pdPASS )
 	{
 		/* freertos_tasks_c_additions_init() should only be called if the user
@@ -2045,6 +2105,7 @@ BaseType_t xReturn;
 		the created tasks contain a status word with interrupts switched on
 		so interrupts will automatically get re-enabled when the first task
 		starts to run. */
+		/**设置当前屏蔽的优先级为系统设置的最大屏蔽的优先级*/
 		portDISABLE_INTERRUPTS();
 
 		#if ( configUSE_NEWLIB_REENTRANT == 1 )
@@ -2054,8 +2115,9 @@ BaseType_t xReturn;
 			_impure_ptr = &( pxCurrentTCB->xNewLib_reent );
 		}
 		#endif /* configUSE_NEWLIB_REENTRANT */
-
+		/**设置*/
 		xNextTaskUnblockTime = portMAX_DELAY;
+		/**设置调度器的运行状态*/
 		xSchedulerRunning = pdTRUE;
 		xTickCount = ( TickType_t ) configINITIAL_TICK_COUNT;
 
@@ -2105,7 +2167,7 @@ void vTaskEndScheduler( void )
 	vPortEndScheduler();
 }
 /*----------------------------------------------------------*/
-
+/**挂起所有的任务*/
 void vTaskSuspendAll( void )
 {
 	/* A critical section is not required as the variable is of type
@@ -2120,8 +2182,8 @@ void vTaskSuspendAll( void )
 
 	static TickType_t prvGetExpectedIdleTime( void )
 	{
-	TickType_t xReturn;
-	UBaseType_t uxHigherPriorityReadyTasks = pdFALSE;
+		TickType_t xReturn;
+		UBaseType_t uxHigherPriorityReadyTasks = pdFALSE;
 
 		/* uxHigherPriorityReadyTasks takes care of the case where
 		configUSE_PREEMPTION is 0, so there may be tasks above the idle priority
@@ -2181,8 +2243,8 @@ void vTaskSuspendAll( void )
 
 BaseType_t xTaskResumeAll( void )
 {
-TCB_t *pxTCB = NULL;
-BaseType_t xAlreadyYielded = pdFALSE;
+	TCB_t *pxTCB = NULL;
+	BaseType_t xAlreadyYielded = pdFALSE;
 
 	/* If uxSchedulerSuspended is zero then this function does not match a
 	previous call to vTaskSuspendAll(). */
@@ -2288,10 +2350,10 @@ BaseType_t xAlreadyYielded = pdFALSE;
 	return xAlreadyYielded;
 }
 /*-----------------------------------------------------------*/
-
+/***/
 TickType_t xTaskGetTickCount( void )
 {
-TickType_t xTicks;
+	TickType_t xTicks;
 
 	/* Critical section required if running on a 16 bit processor. */
 	portTICK_TYPE_ENTER_CRITICAL();
@@ -2306,8 +2368,8 @@ TickType_t xTicks;
 
 TickType_t xTaskGetTickCountFromISR( void )
 {
-TickType_t xReturn;
-UBaseType_t uxSavedInterruptStatus;
+	TickType_t xReturn;
+	UBaseType_t uxSavedInterruptStatus;
 
 	/* RTOS ports that support interrupt nesting have the concept of a maximum
 	system call (or maximum API call) interrupt priority.  Interrupts that are
@@ -2342,10 +2404,10 @@ UBaseType_t uxTaskGetNumberOfTasks( void )
 	return uxCurrentNumberOfTasks;
 }
 /*-----------------------------------------------------------*/
-
+/**获取任务的名称*/
 char *pcTaskGetName( TaskHandle_t xTaskToQuery ) /*lint !e971 Unqualified char types are allowed for strings and single characters only. */
 {
-TCB_t *pxTCB;
+	TCB_t *pxTCB;
 
 	/* If null is passed in here then the name of the calling task is being
 	queried. */
@@ -2359,15 +2421,16 @@ TCB_t *pxTCB;
 
 	static TCB_t *prvSearchForNameWithinSingleList( List_t *pxList, const char pcNameToQuery[] )
 	{
-	TCB_t *pxNextTCB, *pxFirstTCB, *pxReturn = NULL;
-	UBaseType_t x;
-	char cNextChar;
-	BaseType_t xBreakLoop;
+		TCB_t *pxNextTCB, *pxFirstTCB, *pxReturn = NULL;
+		UBaseType_t x;
+		char cNextChar;
+		BaseType_t xBreakLoop;
 
 		/* This function is called with the scheduler suspended. */
 
 		if( listCURRENT_LIST_LENGTH( pxList ) > ( UBaseType_t ) 0 )
 		{
+			/**获取此链表对象的任务所有者*/
 			listGET_OWNER_OF_NEXT_ENTRY( pxFirstTCB, pxList );  /*lint !e9079 void * is used as this macro is used with timers and co-routines too.  Alignment is known to be fine as the type of the pointer stored and retrieved is the same. */
 
 			do
@@ -2424,11 +2487,11 @@ TCB_t *pxTCB;
 /*-----------------------------------------------------------*/
 
 #if ( INCLUDE_xTaskGetHandle == 1 )
-
+	/**获取任务的句柄*/
 	TaskHandle_t xTaskGetHandle( const char *pcNameToQuery ) /*lint !e971 Unqualified char types are allowed for strings and single characters only. */
 	{
-	UBaseType_t uxQueue = configMAX_PRIORITIES;
-	TCB_t* pxTCB;
+		UBaseType_t uxQueue = configMAX_PRIORITIES;
+		TCB_t* pxTCB;
 
 		/* Task names will be truncated to configMAX_TASK_NAME_LEN - 1 bytes. */
 		configASSERT( strlen( pcNameToQuery ) < configMAX_TASK_NAME_LEN );
@@ -2492,7 +2555,7 @@ TCB_t *pxTCB;
 
 	UBaseType_t uxTaskGetSystemState( TaskStatus_t * const pxTaskStatusArray, const UBaseType_t uxArraySize, uint32_t * const pulTotalRunTime )
 	{
-	UBaseType_t uxTask = 0, uxQueue = configMAX_PRIORITIES;
+		UBaseType_t uxTask = 0, uxQueue = configMAX_PRIORITIES;
 
 		vTaskSuspendAll();
 		{
@@ -2595,11 +2658,11 @@ implementations require configUSE_TICKLESS_IDLE to be set to a value other than
 /*----------------------------------------------------------*/
 
 #if ( INCLUDE_xTaskAbortDelay == 1 )
-
+	/**设置任务退出延迟状态*/
 	BaseType_t xTaskAbortDelay( TaskHandle_t xTask )
 	{
-	TCB_t *pxTCB = xTask;
-	BaseType_t xReturn;
+		TCB_t *pxTCB = xTask;
+		BaseType_t xReturn;
 
 		configASSERT( pxTCB );
 
@@ -2672,9 +2735,9 @@ implementations require configUSE_TICKLESS_IDLE to be set to a value other than
 
 BaseType_t xTaskIncrementTick( void )
 {
-TCB_t * pxTCB;
-TickType_t xItemValue;
-BaseType_t xSwitchRequired = pdFALSE;
+	TCB_t * pxTCB;
+	TickType_t xItemValue;
+	BaseType_t xSwitchRequired = pdFALSE;
 
 	/* Called by the portable layer each time a tick interrupt occurs.
 	Increments the tick then checks to see if the new tick value will cause any
@@ -2843,10 +2906,10 @@ BaseType_t xSwitchRequired = pdFALSE;
 /*-----------------------------------------------------------*/
 
 #if ( configUSE_APPLICATION_TASK_TAG == 1 )
-
+	/***设置任务的钩子函数*/
 	void vTaskSetApplicationTaskTag( TaskHandle_t xTask, TaskHookFunction_t pxHookFunction )
 	{
-	TCB_t *xTCB;
+		TCB_t *xTCB;
 
 		/* If xTask is NULL then it is the task hook of the calling task that is
 		getting set. */
@@ -2872,11 +2935,11 @@ BaseType_t xSwitchRequired = pdFALSE;
 /*-----------------------------------------------------------*/
 
 #if ( configUSE_APPLICATION_TASK_TAG == 1 )
-
+	/**获取任务的钩子函数*/
 	TaskHookFunction_t xTaskGetApplicationTaskTag( TaskHandle_t xTask )
 	{
-	TCB_t *xTCB;
-	TaskHookFunction_t xReturn;
+		TCB_t *xTCB;
+		TaskHookFunction_t xReturn;
 
 		/* If xTask is NULL then we are setting our own task hook. */
 		if( xTask == NULL )
@@ -2903,11 +2966,13 @@ BaseType_t xSwitchRequired = pdFALSE;
 /*-----------------------------------------------------------*/
 
 #if ( configUSE_APPLICATION_TASK_TAG == 1 )
-
+	/**设置任务的钩子函数，返回0表示失败否则返回钩子函数的地址
+	 * 如果xTask的值为空指向当前运行的任务否则指向设置的任务
+	*/
 	BaseType_t xTaskCallApplicationTaskHook( TaskHandle_t xTask, void *pvParameter )
 	{
-	TCB_t *xTCB;
-	BaseType_t xReturn;
+		TCB_t *xTCB;
+		BaseType_t xReturn;
 
 		/* If xTask is NULL then we are calling our own task hook. */
 		if( xTask == NULL )
@@ -2933,7 +2998,7 @@ BaseType_t xSwitchRequired = pdFALSE;
 
 #endif /* configUSE_APPLICATION_TASK_TAG */
 /*-----------------------------------------------------------*/
-
+/**切换任务上下文*/
 void vTaskSwitchContext( void )
 {
 	if( uxSchedulerSuspended != ( UBaseType_t ) pdFALSE )
@@ -3006,7 +3071,7 @@ void vTaskSwitchContext( void )
 	}
 }
 /*-----------------------------------------------------------*/
-
+/***/
 void vTaskPlaceOnEventList( List_t * const pxEventList, const TickType_t xTicksToWait )
 {
 	configASSERT( pxEventList );
@@ -3023,7 +3088,7 @@ void vTaskPlaceOnEventList( List_t * const pxEventList, const TickType_t xTicksT
 	prvAddCurrentTaskToDelayedList( xTicksToWait, pdTRUE );
 }
 /*-----------------------------------------------------------*/
-
+/***/
 void vTaskPlaceOnUnorderedEventList( List_t * pxEventList, const TickType_t xItemValue, const TickType_t xTicksToWait )
 {
 	configASSERT( pxEventList );
@@ -3049,7 +3114,7 @@ void vTaskPlaceOnUnorderedEventList( List_t * pxEventList, const TickType_t xIte
 /*-----------------------------------------------------------*/
 
 #if( configUSE_TIMERS == 1 )
-
+	/***/
 	void vTaskPlaceOnEventListRestricted( List_t * const pxEventList, TickType_t xTicksToWait, const BaseType_t xWaitIndefinitely )
 	{
 		configASSERT( pxEventList );
@@ -3080,11 +3145,11 @@ void vTaskPlaceOnUnorderedEventList( List_t * pxEventList, const TickType_t xIte
 
 #endif /* configUSE_TIMERS */
 /*-----------------------------------------------------------*/
-
+/***/
 BaseType_t xTaskRemoveFromEventList( const List_t * const pxEventList )
 {
-TCB_t *pxUnblockedTCB;
-BaseType_t xReturn;
+	TCB_t *pxUnblockedTCB;
+	BaseType_t xReturn;
 
 	/* THIS FUNCTION MUST BE CALLED FROM A CRITICAL SECTION.  It can also be
 	called from a critical section within an ISR. */
@@ -3148,10 +3213,10 @@ BaseType_t xReturn;
 	return xReturn;
 }
 /*-----------------------------------------------------------*/
-
+/***/
 void vTaskRemoveFromUnorderedEventList( ListItem_t * pxEventListItem, const TickType_t xItemValue )
 {
-TCB_t *pxUnblockedTCB;
+	TCB_t *pxUnblockedTCB;
 
 	/* THIS FUNCTION MUST BE CALLED WITH THE SCHEDULER SUSPENDED.  It is used by
 	the event flags implementation. */
@@ -3182,7 +3247,7 @@ TCB_t *pxUnblockedTCB;
 	}
 }
 /*-----------------------------------------------------------*/
-
+/***/
 void vTaskSetTimeOutState( TimeOut_t * const pxTimeOut )
 {
 	configASSERT( pxTimeOut );
@@ -3194,7 +3259,7 @@ void vTaskSetTimeOutState( TimeOut_t * const pxTimeOut )
 	taskEXIT_CRITICAL();
 }
 /*-----------------------------------------------------------*/
-
+/***/
 void vTaskInternalSetTimeOutState( TimeOut_t * const pxTimeOut )
 {
 	/* For internal use only as it does not use a critical section. */
@@ -3202,10 +3267,10 @@ void vTaskInternalSetTimeOutState( TimeOut_t * const pxTimeOut )
 	pxTimeOut->xTimeOnEntering = xTickCount;
 }
 /*-----------------------------------------------------------*/
-
+/**调整任务进入阻塞状态的时间*/
 BaseType_t xTaskCheckForTimeOut( TimeOut_t * const pxTimeOut, TickType_t * const pxTicksToWait )
 {
-BaseType_t xReturn;
+	BaseType_t xReturn;
 
 	configASSERT( pxTimeOut );
 	configASSERT( pxTicksToWait );
@@ -3215,7 +3280,7 @@ BaseType_t xReturn;
 		/* Minor optimisation.  The tick count cannot change in this block. */
 		const TickType_t xConstTickCount = xTickCount;
 		const TickType_t xElapsedTime = xConstTickCount - pxTimeOut->xTimeOnEntering;
-
+		/**是否设置了使任务由阻塞态进入就绪态的函数*/
 		#if( INCLUDE_xTaskAbortDelay == 1 )
 			if( pxCurrentTCB->ucDelayAborted != ( uint8_t ) pdFALSE )
 			{
@@ -3273,11 +3338,11 @@ void vTaskMissedYield( void )
 /*-----------------------------------------------------------*/
 
 #if ( configUSE_TRACE_FACILITY == 1 )
-
+	/**获取任务的标识号*/
 	UBaseType_t uxTaskGetTaskNumber( TaskHandle_t xTask )
 	{
-	UBaseType_t uxReturn;
-	TCB_t const *pxTCB;
+		UBaseType_t uxReturn;
+		TCB_t const *pxTCB;
 
 		if( xTask != NULL )
 		{
@@ -3296,10 +3361,10 @@ void vTaskMissedYield( void )
 /*-----------------------------------------------------------*/
 
 #if ( configUSE_TRACE_FACILITY == 1 )
-
+	/**设置任务的标识号*/
 	void vTaskSetTaskNumber( TaskHandle_t xTask, const UBaseType_t uxHandle )
 	{
-	TCB_t * pxTCB;
+		TCB_t * pxTCB;
 
 		if( xTask != NULL )
 		{
@@ -3321,6 +3386,7 @@ void vTaskMissedYield( void )
  * void prvIdleTask( void *pvParameters );
  *
  */
+/***/
 static portTASK_FUNCTION( prvIdleTask, pvParameters )
 {
 	/* Stop warnings. */
@@ -3439,12 +3505,12 @@ static portTASK_FUNCTION( prvIdleTask, pvParameters )
 /*-----------------------------------------------------------*/
 
 #if( configUSE_TICKLESS_IDLE != 0 )
-
+	/***/
 	eSleepModeStatus eTaskConfirmSleepModeStatus( void )
 	{
-	/* The idle task exists in addition to the application tasks. */
-	const UBaseType_t uxNonApplicationTasks = 1;
-	eSleepModeStatus eReturn = eStandardSleep;
+		/* The idle task exists in addition to the application tasks. */
+		const UBaseType_t uxNonApplicationTasks = 1;
+		eSleepModeStatus eReturn = eStandardSleep;
 
 		if( listCURRENT_LIST_LENGTH( &xPendingReadyList ) != 0 )
 		{
@@ -3479,10 +3545,10 @@ static portTASK_FUNCTION( prvIdleTask, pvParameters )
 /*-----------------------------------------------------------*/
 
 #if ( configNUM_THREAD_LOCAL_STORAGE_POINTERS != 0 )
-
+	/***/
 	void vTaskSetThreadLocalStoragePointer( TaskHandle_t xTaskToSet, BaseType_t xIndex, void *pvValue )
 	{
-	TCB_t *pxTCB;
+		TCB_t *pxTCB;
 
 		if( xIndex < configNUM_THREAD_LOCAL_STORAGE_POINTERS )
 		{
@@ -3495,11 +3561,11 @@ static portTASK_FUNCTION( prvIdleTask, pvParameters )
 /*-----------------------------------------------------------*/
 
 #if ( configNUM_THREAD_LOCAL_STORAGE_POINTERS != 0 )
-
+	/***/	
 	void *pvTaskGetThreadLocalStoragePointer( TaskHandle_t xTaskToQuery, BaseType_t xIndex )
 	{
-	void *pvReturn = NULL;
-	TCB_t *pxTCB;
+		void *pvReturn = NULL;
+		TCB_t *pxTCB;
 
 		if( xIndex < configNUM_THREAD_LOCAL_STORAGE_POINTERS )
 		{
@@ -3518,10 +3584,10 @@ static portTASK_FUNCTION( prvIdleTask, pvParameters )
 /*-----------------------------------------------------------*/
 
 #if ( portUSING_MPU_WRAPPERS == 1 )
-
+	/***/
 	void vTaskAllocateMPURegions( TaskHandle_t xTaskToModify, const MemoryRegion_t * const xRegions )
 	{
-	TCB_t *pxTCB;
+		TCB_t *pxTCB;
 
 		/* If null is passed in here then we are modifying the MPU settings of
 		the calling task. */
@@ -3532,10 +3598,10 @@ static portTASK_FUNCTION( prvIdleTask, pvParameters )
 
 #endif /* portUSING_MPU_WRAPPERS */
 /*-----------------------------------------------------------*/
-
+/**初始化任务链表*/
 static void prvInitialiseTaskLists( void )
 {
-UBaseType_t uxPriority;
+	UBaseType_t uxPriority;
 
 	for( uxPriority = ( UBaseType_t ) 0U; uxPriority < ( UBaseType_t ) configMAX_PRIORITIES; uxPriority++ )
 	{
@@ -3564,7 +3630,7 @@ UBaseType_t uxPriority;
 	pxOverflowDelayedTaskList = &xDelayedTaskList2;
 }
 /*-----------------------------------------------------------*/
-
+/***/
 static void prvCheckTasksWaitingTermination( void )
 {
 
@@ -3595,10 +3661,10 @@ static void prvCheckTasksWaitingTermination( void )
 /*-----------------------------------------------------------*/
 
 #if( configUSE_TRACE_FACILITY == 1 )
-
+	/***/
 	void vTaskGetInfo( TaskHandle_t xTask, TaskStatus_t *pxTaskStatus, BaseType_t xGetFreeStackSpace, eTaskState eState )
 	{
-	TCB_t *pxTCB;
+		TCB_t *pxTCB;
 
 		/* xTask is NULL then get the state of the calling task. */
 		pxTCB = prvGetTCBFromHandle( xTask );
@@ -3691,11 +3757,11 @@ static void prvCheckTasksWaitingTermination( void )
 /*-----------------------------------------------------------*/
 
 #if ( configUSE_TRACE_FACILITY == 1 )
-
+	/***/
 	static UBaseType_t prvListTasksWithinSingleList( TaskStatus_t *pxTaskStatusArray, List_t *pxList, eTaskState eState )
 	{
-	configLIST_VOLATILE TCB_t *pxNextTCB, *pxFirstTCB;
-	UBaseType_t uxTask = 0;
+		configLIST_VOLATILE TCB_t *pxNextTCB, *pxFirstTCB;
+		UBaseType_t uxTask = 0;
 
 		if( listCURRENT_LIST_LENGTH( pxList ) > ( UBaseType_t ) 0 )
 		{
@@ -3724,10 +3790,10 @@ static void prvCheckTasksWaitingTermination( void )
 /*-----------------------------------------------------------*/
 
 #if ( ( configUSE_TRACE_FACILITY == 1 ) || ( INCLUDE_uxTaskGetStackHighWaterMark == 1 ) )
-
+	/****/
 	static configSTACK_DEPTH_TYPE prvTaskCheckFreeStackSpace( const uint8_t * pucStackByte )
 	{
-	uint32_t ulCount = 0U;
+		uint32_t ulCount = 0U;
 
 		while( *pucStackByte == ( uint8_t ) tskSTACK_FILL_BYTE )
 		{
@@ -3747,9 +3813,9 @@ static void prvCheckTasksWaitingTermination( void )
 
 	UBaseType_t uxTaskGetStackHighWaterMark( TaskHandle_t xTask )
 	{
-	TCB_t *pxTCB;
-	uint8_t *pucEndOfStack;
-	UBaseType_t uxReturn;
+		TCB_t *pxTCB;
+		uint8_t *pucEndOfStack;
+		UBaseType_t uxReturn;
 
 		pxTCB = prvGetTCBFromHandle( xTask );
 
@@ -3772,7 +3838,7 @@ static void prvCheckTasksWaitingTermination( void )
 /*-----------------------------------------------------------*/
 
 #if ( INCLUDE_vTaskDelete == 1 )
-
+	/**删除任务控制块*/
 	static void prvDeleteTCB( TCB_t *pxTCB )
 	{
 		/* This call is required specifically for the TriCore port.  It must be
@@ -3826,10 +3892,10 @@ static void prvCheckTasksWaitingTermination( void )
 
 #endif /* INCLUDE_vTaskDelete */
 /*-----------------------------------------------------------*/
-
+/****/
 static void prvResetNextTaskUnblockTime( void )
 {
-TCB_t *pxTCB;
+	TCB_t *pxTCB;
 
 	if( listLIST_IS_EMPTY( pxDelayedTaskList ) != pdFALSE )
 	{
@@ -3852,10 +3918,10 @@ TCB_t *pxTCB;
 /*-----------------------------------------------------------*/
 
 #if ( ( INCLUDE_xTaskGetCurrentTaskHandle == 1 ) || ( configUSE_MUTEXES == 1 ) )
-
+	/**获取当前任务的句柄*/
 	TaskHandle_t xTaskGetCurrentTaskHandle( void )
 	{
-	TaskHandle_t xReturn;
+		TaskHandle_t xReturn;
 
 		/* A critical section is not required as this is not called from
 		an interrupt and the current TCB will always be the same for any
@@ -3869,10 +3935,10 @@ TCB_t *pxTCB;
 /*-----------------------------------------------------------*/
 
 #if ( ( INCLUDE_xTaskGetSchedulerState == 1 ) || ( configUSE_TIMERS == 1 ) )
-
+	/**获取调度任务的状态*/
 	BaseType_t xTaskGetSchedulerState( void )
 	{
-	BaseType_t xReturn;
+		BaseType_t xReturn;
 
 		if( xSchedulerRunning == pdFALSE )
 		{
@@ -3897,11 +3963,11 @@ TCB_t *pxTCB;
 /*-----------------------------------------------------------*/
 
 #if ( configUSE_MUTEXES == 1 )
-
+	/***/
 	BaseType_t xTaskPriorityInherit( TaskHandle_t const pxMutexHolder )
 	{
-	TCB_t * const pxMutexHolderTCB = pxMutexHolder;
-	BaseType_t xReturn = pdFALSE;
+		TCB_t * const pxMutexHolderTCB = pxMutexHolder;
+		BaseType_t xReturn = pdFALSE;
 
 		/* If the mutex was given back by an interrupt while the queue was
 		locked then the mutex holder might now be NULL.  _RB_ Is this still
@@ -3984,11 +4050,11 @@ TCB_t *pxTCB;
 /*-----------------------------------------------------------*/
 
 #if ( configUSE_MUTEXES == 1 )
-
+	/***/
 	BaseType_t xTaskPriorityDisinherit( TaskHandle_t const pxMutexHolder )
 	{
-	TCB_t * const pxTCB = pxMutexHolder;
-	BaseType_t xReturn = pdFALSE;
+		TCB_t * const pxTCB = pxMutexHolder;
+		BaseType_t xReturn = pdFALSE;
 
 		if( pxMutexHolder != NULL )
 		{
@@ -4064,12 +4130,12 @@ TCB_t *pxTCB;
 /*-----------------------------------------------------------*/
 
 #if ( configUSE_MUTEXES == 1 )
-
+	/***/
 	void vTaskPriorityDisinheritAfterTimeout( TaskHandle_t const pxMutexHolder, UBaseType_t uxHighestPriorityWaitingTask )
 	{
-	TCB_t * const pxTCB = pxMutexHolder;
-	UBaseType_t uxPriorityUsedOnEntry, uxPriorityToUse;
-	const UBaseType_t uxOnlyOneMutexHeld = ( UBaseType_t ) 1;
+		TCB_t * const pxTCB = pxMutexHolder;
+		UBaseType_t uxPriorityUsedOnEntry, uxPriorityToUse;
+		const UBaseType_t uxOnlyOneMutexHeld = ( UBaseType_t ) 1;
 
 		if( pxMutexHolder != NULL )
 		{
@@ -4166,7 +4232,7 @@ TCB_t *pxTCB;
 /*-----------------------------------------------------------*/
 
 #if ( portCRITICAL_NESTING_IN_TCB == 1 )
-
+	/***/
 	void vTaskEnterCritical( void )
 	{
 		portDISABLE_INTERRUPTS();
@@ -4196,7 +4262,7 @@ TCB_t *pxTCB;
 /*-----------------------------------------------------------*/
 
 #if ( portCRITICAL_NESTING_IN_TCB == 1 )
-
+	/***/
 	void vTaskExitCritical( void )
 	{
 		if( xSchedulerRunning != pdFALSE )
@@ -4229,10 +4295,10 @@ TCB_t *pxTCB;
 /*-----------------------------------------------------------*/
 
 #if ( ( configUSE_TRACE_FACILITY == 1 ) && ( configUSE_STATS_FORMATTING_FUNCTIONS > 0 ) )
-
+	/***/
 	static char *prvWriteNameToBuffer( char *pcBuffer, const char *pcTaskName )
 	{
-	size_t x;
+		size_t x;
 
 		/* Start by copying the entire string. */
 		strcpy( pcBuffer, pcTaskName );
@@ -4255,12 +4321,12 @@ TCB_t *pxTCB;
 /*-----------------------------------------------------------*/
 
 #if ( ( configUSE_TRACE_FACILITY == 1 ) && ( configUSE_STATS_FORMATTING_FUNCTIONS > 0 ) && ( configSUPPORT_DYNAMIC_ALLOCATION == 1 ) )
-
+	/***/
 	void vTaskList( char * pcWriteBuffer )
 	{
-	TaskStatus_t *pxTaskStatusArray;
-	UBaseType_t uxArraySize, x;
-	char cStatus;
+		TaskStatus_t *pxTaskStatusArray;
+		UBaseType_t uxArraySize, x;
+		char cStatus;
 
 		/*
 		 * PLEASE NOTE:
@@ -4354,12 +4420,12 @@ TCB_t *pxTCB;
 /*----------------------------------------------------------*/
 
 #if ( ( configGENERATE_RUN_TIME_STATS == 1 ) && ( configUSE_STATS_FORMATTING_FUNCTIONS > 0 ) && ( configSUPPORT_DYNAMIC_ALLOCATION == 1 ) )
-
+	/***/
 	void vTaskGetRunTimeStats( char *pcWriteBuffer )
 	{
-	TaskStatus_t *pxTaskStatusArray;
-	UBaseType_t uxArraySize, x;
-	uint32_t ulTotalTime, ulStatsAsPercentage;
+		TaskStatus_t *pxTaskStatusArray;
+		UBaseType_t uxArraySize, x;
+		uint32_t ulTotalTime, ulStatsAsPercentage;
 
 		#if( configUSE_TRACE_FACILITY != 1 )
 		{
@@ -4479,10 +4545,10 @@ TCB_t *pxTCB;
 
 #endif /* ( ( configGENERATE_RUN_TIME_STATS == 1 ) && ( configUSE_STATS_FORMATTING_FUNCTIONS > 0 ) && ( configSUPPORT_STATIC_ALLOCATION == 1 ) ) */
 /*-----------------------------------------------------------*/
-
+/***/
 TickType_t uxTaskResetEventItemValue( void )
 {
-TickType_t uxReturn;
+	TickType_t uxReturn;
 
 	uxReturn = listGET_LIST_ITEM_VALUE( &( pxCurrentTCB->xEventListItem ) );
 
@@ -4495,7 +4561,7 @@ TickType_t uxReturn;
 /*-----------------------------------------------------------*/
 
 #if ( configUSE_MUTEXES == 1 )
-
+	/***/
 	TaskHandle_t pvTaskIncrementMutexHeldCount( void )
 	{
 		/* If xSemaphoreCreateMutex() is called before any tasks have been created
@@ -4512,10 +4578,10 @@ TickType_t uxReturn;
 /*-----------------------------------------------------------*/
 
 #if( configUSE_TASK_NOTIFICATIONS == 1 )
-
+	/***/
 	uint32_t ulTaskNotifyTake( BaseType_t xClearCountOnExit, TickType_t xTicksToWait )
 	{
-	uint32_t ulReturn;
+		uint32_t ulReturn;
 
 		taskENTER_CRITICAL();
 		{
@@ -4580,10 +4646,10 @@ TickType_t uxReturn;
 /*-----------------------------------------------------------*/
 
 #if( configUSE_TASK_NOTIFICATIONS == 1 )
-
+	/***/
 	BaseType_t xTaskNotifyWait( uint32_t ulBitsToClearOnEntry, uint32_t ulBitsToClearOnExit, uint32_t *pulNotificationValue, TickType_t xTicksToWait )
 	{
-	BaseType_t xReturn;
+		BaseType_t xReturn;
 
 		taskENTER_CRITICAL();
 		{
@@ -4660,12 +4726,12 @@ TickType_t uxReturn;
 /*-----------------------------------------------------------*/
 
 #if( configUSE_TASK_NOTIFICATIONS == 1 )
-
+	/***/
 	BaseType_t xTaskGenericNotify( TaskHandle_t xTaskToNotify, uint32_t ulValue, eNotifyAction eAction, uint32_t *pulPreviousNotificationValue )
 	{
-	TCB_t * pxTCB;
-	BaseType_t xReturn = pdPASS;
-	uint8_t ucOriginalNotifyState;
+		TCB_t * pxTCB;
+		BaseType_t xReturn = pdPASS;
+		uint8_t ucOriginalNotifyState;
 
 		configASSERT( xTaskToNotify );
 		pxTCB = xTaskToNotify;
@@ -4774,13 +4840,13 @@ TickType_t uxReturn;
 /*-----------------------------------------------------------*/
 
 #if( configUSE_TASK_NOTIFICATIONS == 1 )
-
+	/***/
 	BaseType_t xTaskGenericNotifyFromISR( TaskHandle_t xTaskToNotify, uint32_t ulValue, eNotifyAction eAction, uint32_t *pulPreviousNotificationValue, BaseType_t *pxHigherPriorityTaskWoken )
 	{
-	TCB_t * pxTCB;
-	uint8_t ucOriginalNotifyState;
-	BaseType_t xReturn = pdPASS;
-	UBaseType_t uxSavedInterruptStatus;
+		TCB_t * pxTCB;
+		uint8_t ucOriginalNotifyState;
+		BaseType_t xReturn = pdPASS;
+		UBaseType_t uxSavedInterruptStatus;
 
 		configASSERT( xTaskToNotify );
 
@@ -4903,12 +4969,12 @@ TickType_t uxReturn;
 /*-----------------------------------------------------------*/
 
 #if( configUSE_TASK_NOTIFICATIONS == 1 )
-
+	/***/
 	void vTaskNotifyGiveFromISR( TaskHandle_t xTaskToNotify, BaseType_t *pxHigherPriorityTaskWoken )
 	{
-	TCB_t * pxTCB;
-	uint8_t ucOriginalNotifyState;
-	UBaseType_t uxSavedInterruptStatus;
+		TCB_t * pxTCB;
+		uint8_t ucOriginalNotifyState;
+		UBaseType_t uxSavedInterruptStatus;
 
 		configASSERT( xTaskToNotify );
 
@@ -4990,11 +5056,11 @@ TickType_t uxReturn;
 /*-----------------------------------------------------------*/
 
 #if( configUSE_TASK_NOTIFICATIONS == 1 )
-
+	/***/
 	BaseType_t xTaskNotifyStateClear( TaskHandle_t xTask )
 	{
-	TCB_t *pxTCB;
-	BaseType_t xReturn;
+		TCB_t *pxTCB;
+		BaseType_t xReturn;
 
 		/* If null is passed in here then it is the calling task that is having
 		its notification state cleared. */
@@ -5023,8 +5089,8 @@ TickType_t uxReturn;
 /** */
 static void prvAddCurrentTaskToDelayedList( TickType_t xTicksToWait, const BaseType_t xCanBlockIndefinitely )
 {
-TickType_t xTimeToWake;
-const TickType_t xConstTickCount = xTickCount;
+	TickType_t xTimeToWake;
+	const TickType_t xConstTickCount = xTickCount;
 
 	#if( INCLUDE_xTaskAbortDelay == 1 )
 	{

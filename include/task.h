@@ -68,6 +68,13 @@ typedef struct tskTaskControlBlock* TaskHandle_t;
 typedef BaseType_t (*TaskHookFunction_t)( void * );
 
 /* Task states returned by eTaskGetState. */
+/**任务的状态
+ * eRunning：0，运行态
+ * eReady：1，就绪态
+ * eBlocked：2，阻塞态
+ * eDeleted：3，删除态
+ * eInvalid：4，无效态
+*/
 typedef enum
 {
 	eRunning = 0,	/* A task is querying the state of itself, so must be running. */
@@ -79,6 +86,9 @@ typedef enum
 } eTaskState;
 
 /* Actions that can be performed when vTaskNotify() is called. */
+/**
+ * 
+*/
 typedef enum
 {
 	eNoAction = 0,				/* Notify the task without updating its notify value. */
@@ -110,6 +120,16 @@ typedef struct xMEMORY_REGION
 /*
  * Parameters required to create an MPU protected task.
  */
+/**任务参数结构体
+ * pvTaskCode：任务代码地址
+ * pcName：任务名称
+ * usStackDepth：栈的深度
+ * pvParameters：参数
+ * uxPriority：优先级
+ * puxStackBuffer：栈缓存
+ * xRegions：域
+ * pxTaskBuffer：任务缓存
+*/
 typedef struct xTASK_PARAMETERS
 {
 	TaskFunction_t pvTaskCode;
@@ -126,6 +146,17 @@ typedef struct xTASK_PARAMETERS
 
 /* Used with the uxTaskGetSystemState() function to return the state of each task
 in the system. */
+/**任务状态
+ * xHandle：任务句柄
+ * pcTaskName：任务名称
+ * xTaskNumber：任务编号
+ * eCurrentState：任务状态
+ * uxCurrentPriority：设置的任务优先级
+ * uxBasePriority：
+ * ulRunTimeCounter：任务运行的时间
+ * pxStackBase：任务的栈的基地址
+ * usStackHighWaterMark：最小的栈空间
+*/
 typedef struct xTASK_STATUS
 {
 	TaskHandle_t xHandle;			/* The handle of the task to which the rest of the information in the structure relates. */

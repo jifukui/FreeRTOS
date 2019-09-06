@@ -20,7 +20,7 @@ your application. */
 #define configUSE_MUTEXES                       0               /**设置是否使用互斥量*/
 #define configUSE_RECURSIVE_MUTEXES             0
 #define configUSE_COUNTING_SEMAPHORES           0
-#define configUSE_ALTERNATIVE_API               0 /* Deprecated! */
+#define configUSE_ALTERNATIVE_API               0               /** Deprecated! */
 #define configQUEUE_REGISTRY_SIZE               10
 #define configUSE_QUEUE_SETS                    0
 #define configUSE_TIME_SLICING                  0
@@ -84,7 +84,7 @@ your application. */
 #define INCLUDE_eTaskGetState                   0
 #define INCLUDE_xEventGroupSetBitFromISR        1
 #define INCLUDE_xTimerPendFunctionCall          0
-#define INCLUDE_xTaskAbortDelay                 0
+#define INCLUDE_xTaskAbortDelay                 0               /**设置使任务由阻塞态进入就绪态的函数可用*/
 #define INCLUDE_xTaskGetHandle                  0
 #define INCLUDE_xTaskResumeFromISR              1
 

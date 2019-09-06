@@ -63,13 +63,19 @@ a union as their usage is mutually exclusive dependent on what the queue is
 being used for. */
 #define uxQueueType						pcHead
 #define queueQUEUE_IS_MUTEX				NULL
-
+/**队列指针
+ * pcTail指向队列的尾
+ * 指向队列当前读取的位置
+*/
 typedef struct QueuePointers
 {
 	int8_t *pcTail;					/*< Points to the byte at the end of the queue storage area.  Once more byte is allocated than necessary to store the queue items, this is used as a marker. */
 	int8_t *pcReadFrom;				/*< Points to the last place that a queued item was read from when the structure is used as a queue. */
 } QueuePointers_t;
-
+/**信号数据
+ * xMutexHolder：指向获取互斥信号的任务
+ * uxRecursiveCallCount：递归使用互斥体的次数
+*/
 typedef struct SemaphoreData
 {
 	TaskHandle_t xMutexHolder;		 /*< The handle of the task that holds the mutex. */
@@ -94,6 +100,22 @@ zero. */
  * Items are queued by copy, not reference.  See the following link for the
  * rationale: https://www.freertos.org/Embedded-RTOS-Queues.html
  */
+/**队列结构体
+ * pcHead：队列存储区的头部
+ * pcWriteTo：写一个需要写的数据地址
+ * 数据类型：队列还是信号量
+ * xTasksWaitingToSend：等待向队列发送数据的任务的链表
+ * xTasksWaitingToReceive：等待向队列读取数据的任务的链表
+ * uxMessagesWaiting：
+ * uxLength：队列的长度
+ * uxItemSize：
+ * cRxLock：
+ * cTxLock：
+ * ucStaticallyAllocated：
+ * pxQueueSetContainer：
+ * uxQueueNumber：
+ * ucQueueType：
+*/
 typedef struct QueueDefinition 		/* The old naming convention is used to prevent breaking kernel aware debuggers. */
 {
 	int8_t *pcHead;					/*< Points to the beginning of the queue storage area. */

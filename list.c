@@ -33,7 +33,12 @@
 /*-----------------------------------------------------------
  * PUBLIC LIST API documented in list.h
  *----------------------------------------------------------*/
-/**初始化链表 */
+/**初始化链表
+ * 设置链表的指针指向头结点
+ * 设置头结点索引值为最大值保证此节点为头结点
+ * 设置头及诶单的上一个节点和下一个节点都是此头节点的循环链表
+ * 设置头结点的成员数量为0
+*/
 void vListInitialise( List_t * const pxList )
 {
 	/* The list structure contains a list item which is used to mark the
@@ -72,7 +77,10 @@ void vListInitialiseItem( ListItem_t * const pxItem )
 	listSET_SECOND_LIST_ITEM_INTEGRITY_CHECK_VALUE( pxItem );
 }
 /*-----------------------------------------------------------*/
-/**链表尾部插入数据 */
+/**链表尾部插入数据 
+ * 获取链表的当前的索引值
+ * 进行新的链的连接
+*/
 void vListInsertEnd( List_t * const pxList, ListItem_t * const pxNewListItem )
 {
 	/**获取当前处理的节点 */
@@ -100,11 +108,13 @@ void vListInsertEnd( List_t * const pxList, ListItem_t * const pxNewListItem )
 	/* Remember which list the item is in. */
 	/**设置插入节点所在的链表 */
 	pxNewListItem->pxContainer = pxList;
-
+	/**	更新链表成员的数量*/	
 	( pxList->uxNumberOfItems )++;
 }
 /*-----------------------------------------------------------*/
-/**插入数据按照顺序进行插入 */
+/**插入数据按照顺序进行插入 
+ * 根据元素的索引值进行排序
+*/
 void vListInsert( List_t * const pxList, ListItem_t * const pxNewListItem )
 {
 	ListItem_t *pxIterator;
@@ -171,7 +181,7 @@ void vListInsert( List_t * const pxList, ListItem_t * const pxNewListItem )
 	( pxList->uxNumberOfItems )++;
 }
 /*-----------------------------------------------------------*/
-/**删除 */
+/**删除链表中的数据项，返回当前链表中的数据项的数量 */
 UBaseType_t uxListRemove( ListItem_t * const pxItemToRemove )
 {
 /* The list item knows which list it is in.  Obtain the list from the list
